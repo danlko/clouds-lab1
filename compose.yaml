@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: books
+      POSTGRES_USER: books
+      POSTGRES_PASSWORD: books_local_pw   # лише для локальної розробки
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # дані переживають `docker compose down`
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U books -d books"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: books
+      DB_USER: books
+      DB_PASSWORD: books_local_pw
+      DB_SSLMODE: disable
+      AUTH_ENABLED: "false"               # локально без Cognito
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

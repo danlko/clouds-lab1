@@ -1,0 +1,6 @@
+# cp terraform.tfvars.example terraform.tfvars  (файл terraform.tfvars у .gitignore)
+region             = "eu-central-1"
+github_repo        = "YOUR_GITHUB_LOGIN/YOUR_REPO"
+alert_email        = "you@example.com"
+demo_user_email    = "you@example.com"
+demo_user_password = "ChangeMe-123!"
