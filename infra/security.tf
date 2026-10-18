@@ -16,7 +16,6 @@ resource "aws_security_group" "db" {
   vpc_id      = aws_vpc.main.id
 }
 
-# ALB: з інтернету лише HTTP 80
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
   security_group_id = aws_security_group.alb.id
   ip_protocol       = "tcp"
@@ -25,7 +24,6 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
-# ALB -> застосунок (лише порт контейнера)
 resource "aws_vpc_security_group_egress_rule" "alb_to_app" {
   security_group_id            = aws_security_group.alb.id
   ip_protocol                  = "tcp"
@@ -34,7 +32,6 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_app" {
   referenced_security_group_id = aws_security_group.app.id
 }
 
-# Застосунок приймає трафік ЛИШЕ від security group балансувальника
 resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
   security_group_id            = aws_security_group.app.id
   ip_protocol                  = "tcp"
@@ -43,14 +40,12 @@ resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
   referenced_security_group_id = aws_security_group.alb.id
 }
 
-# Застосунок -> назовні (ECR, Secrets Manager, CloudWatch, Cognito JWKS) через NAT
 resource "aws_vpc_security_group_egress_rule" "app_all" {
   security_group_id = aws_security_group.app.id
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
 }
 
-# БД приймає підключення ЛИШЕ від security group застосунку (не від CIDR)
 resource "aws_vpc_security_group_ingress_rule" "db_from_app" {
   security_group_id            = aws_security_group.db.id
   ip_protocol                  = "tcp"

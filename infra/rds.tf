@@ -15,7 +15,6 @@ resource "aws_db_instance" "main" {
 
   db_name  = "books"
   username = "books"
-  # Пароль генерує й зберігає сам RDS у Secrets Manager — його немає ні в коді, ні в tfvars
   manage_master_user_password = true
 
   db_subnet_group_name   = aws_db_subnet_group.main.name

@@ -1,7 +1,7 @@
 resource "aws_ecr_repository" "app" {
   name                 = var.name
-  image_tag_mutability = "MUTABLE" # bootstrap-тег перезаписується; CD використовує унікальні теги = хеш коміту
-  force_delete         = true      # щоб terraform destroy видаляв реєстр разом з образами
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -24,9 +24,6 @@ resource "aws_ecr_lifecycle_policy" "app" {
   })
 }
 
-# Збирає й пушить перший образ під час `terraform apply`,
-# щоб ECS-сервіс стартував з порожнього акаунта однією командою.
-# Потрібні: docker, aws cli, bash на машині, де виконується apply.
 resource "terraform_data" "initial_image" {
   triggers_replace = [aws_ecr_repository.app.repository_url, var.bootstrap_tag]
 

@@ -4,9 +4,9 @@ services:
     environment:
       POSTGRES_DB: books
       POSTGRES_USER: books
-      POSTGRES_PASSWORD: books_local_pw   # лише для локальної розробки
+      POSTGRES_PASSWORD: books_local_pw
     volumes:
-      - pgdata:/var/lib/postgresql/data   # дані переживають `docker compose down`
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U books -d books"]
       interval: 5s
@@ -25,7 +25,7 @@ services:
       DB_USER: books
       DB_PASSWORD: books_local_pw
       DB_SSLMODE: disable
-      AUTH_ENABLED: "false"               # локально без Cognito
+      AUTH_ENABLED: "false"
     ports:
       - "8000:8000"
 

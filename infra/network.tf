@@ -18,7 +18,6 @@ resource "aws_internet_gateway" "main" {
   tags   = { Name = var.name }
 }
 
-# Публічні підмережі: лише балансувальник і NAT
 resource "aws_subnet" "public" {
   count             = 2
   vpc_id            = aws_vpc.main.id
@@ -27,7 +26,6 @@ resource "aws_subnet" "public" {
   tags              = { Name = "${var.name}-public-${count.index}" }
 }
 
-# Приватні підмережі для контейнерів (вихід в інтернет через NAT)
 resource "aws_subnet" "app" {
   count             = 2
   vpc_id            = aws_vpc.main.id
@@ -36,7 +34,6 @@ resource "aws_subnet" "app" {
   tags              = { Name = "${var.name}-app-${count.index}" }
 }
 
-# Приватні підмережі для БД: без маршруту в інтернет взагалі
 resource "aws_subnet" "db" {
   count             = 2
   vpc_id            = aws_vpc.main.id

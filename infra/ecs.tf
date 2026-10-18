@@ -22,7 +22,6 @@ data "aws_iam_policy_document" "ecs_assume" {
   }
 }
 
-# Execution role: pull з ECR, логи, читання секрету БД
 resource "aws_iam_role" "execution" {
   name               = "${var.name}-execution"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
@@ -46,7 +45,6 @@ resource "aws_iam_role_policy" "execution_secret" {
   })
 }
 
-# Task role: прав у застосунку на AWS API немає (він лише ходить у БД)
 resource "aws_iam_role" "task" {
   name               = "${var.name}-task"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
@@ -85,7 +83,6 @@ resource "aws_ecs_task_definition" "app" {
       { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.api.id },
     ]
 
-    # Пароль БД підтягується з Secrets Manager під час старту контейнера
     secrets = [
       { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
     ]
@@ -129,7 +126,6 @@ resource "aws_ecs_service" "app" {
 
   depends_on = [aws_lb_listener.http, terraform_data.initial_image]
 
-  # Нові ревізії task definition реєструє GitHub Actions — Terraform їх не перезаписує
   lifecycle {
     ignore_changes = [task_definition]
   }

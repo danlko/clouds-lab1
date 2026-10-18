@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # База даних (значення приходять зі змінних середовища; пароль — з Secrets Manager)
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "books"
@@ -12,7 +11,6 @@ class Settings(BaseSettings):
     db_password: str = ""
     db_sslmode: str = "prefer"
 
-    # Автентифікація (AWS Cognito)
     auth_enabled: bool = False
     cognito_region: str = ""
     cognito_user_pool_id: str = ""

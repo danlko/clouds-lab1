@@ -36,7 +36,7 @@ def require_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -
             signing_key.key,
             algorithms=["RS256"],
             issuer=s.cognito_issuer,
-            options={"verify_aud": False},  # access token Cognito не має aud, перевіряємо client_id нижче
+            options={"verify_aud": False},
         )
     except jwt.PyJWTError:
         raise _unauthorized("Invalid or expired token")

@@ -17,7 +17,6 @@ log = logging.getLogger("uvicorn.error")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Створюємо таблиці при старті; чекаємо на БД, якщо вона ще піднімається
     for attempt in range(1, 31):
         try:
             Base.metadata.create_all(engine)

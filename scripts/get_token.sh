@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Отримати access token Cognito для тестового користувача:
-#   DEMO_EMAIL=you@example.com DEMO_PASSWORD='...' ./scripts/get_token.sh
 set -euo pipefail
 : "${DEMO_EMAIL:?set DEMO_EMAIL}" "${DEMO_PASSWORD:?set DEMO_PASSWORD}"
 

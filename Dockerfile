@@ -1,4 +1,3 @@
-# Базовий образ із зафіксованою версією (не latest)
 FROM python:3.12.7-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,11 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Непривілейований користувач
 RUN groupadd --system --gid 10001 app \
  && useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
 
-# Залежності окремим шаром — до копіювання коду (кеш шарів)
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

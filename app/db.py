@@ -6,7 +6,6 @@ from .config import get_settings
 
 _s = get_settings()
 
-# URL.create екранує спецсимволи в паролі (RDS генерує складні паролі)
 DATABASE_URL = URL.create(
     "postgresql+psycopg",
     username=_s.db_user,
