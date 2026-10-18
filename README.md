@@ -4,7 +4,7 @@ REST API (FastAPI + PostgreSQL), запакований в Docker, розгор�
 ECS Fargate за ALB, RDS PostgreSQL у приватній підмережі, автодеплой через GitHub Actions (OIDC),
 автентифікація Cognito (JWT), моніторинг CloudWatch.
 
-**Публічна адреса:** `http://<ВСТАВИТИ_ALB_DNS>` · Swagger UI: `http://<ВСТАВИТИ_ALB_DNS>/docs`
+**Публічна адреса:** http://lab1-books-640699101.eu-north-1.elb.amazonaws.com · [Swagger UI](http://lab1-books-640699101.eu-north-1.elb.amazonaws.com/docs)
 
 ## Ендпоінти
 

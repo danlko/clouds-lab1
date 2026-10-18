@@ -1,5 +1,3 @@
-# Увага: OIDC-провайдер GitHub може бути в акаунті лише один.
-# Якщо він уже існує — `terraform import aws_iam_openid_connect_provider.github <arn>`.
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
@@ -18,11 +16,13 @@ data "aws_iam_policy_document" "github_assume" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Роль може взяти лише workflow з гілки main цього репозиторію
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values = [
+        "repo:${var.github_repo}:ref:refs/heads/main",
+        "repo:${replace(var.github_repo, "/", "@*/")}@*:ref:refs/heads/main",
+      ]
     }
   }
 }
