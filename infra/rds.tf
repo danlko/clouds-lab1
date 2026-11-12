@@ -13,8 +13,8 @@ resource "aws_db_instance" "main" {
   storage_type      = "gp3"
   storage_encrypted = true
 
-  db_name  = "books"
-  username = "books"
+  db_name                     = "books"
+  username                    = "books"
   manage_master_user_password = true
 
   db_subnet_group_name   = aws_db_subnet_group.main.name

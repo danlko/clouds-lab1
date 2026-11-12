@@ -50,6 +50,21 @@ resource "aws_iam_role" "task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
+locals {
+  # спільне для застосунку і обробника черги (queue.tf)
+  db_env = [
+    { name = "DB_HOST", value = aws_db_instance.main.address },
+    { name = "DB_PORT", value = tostring(aws_db_instance.main.port) },
+    { name = "DB_NAME", value = aws_db_instance.main.db_name },
+    { name = "DB_USER", value = aws_db_instance.main.username },
+    { name = "DB_SSLMODE", value = "require" },
+    { name = "AWS_REGION", value = var.region },
+  ]
+  db_secrets = [
+    { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
+  ]
+}
+
 resource "aws_ecs_task_definition" "app" {
   family                   = var.name
   requires_compatibilities = ["FARGATE"]
@@ -71,21 +86,21 @@ resource "aws_ecs_task_definition" "app" {
 
     portMappings = [{ containerPort = var.container_port, protocol = "tcp" }]
 
-    environment = [
-      { name = "DB_HOST", value = aws_db_instance.main.address },
-      { name = "DB_PORT", value = tostring(aws_db_instance.main.port) },
-      { name = "DB_NAME", value = aws_db_instance.main.db_name },
-      { name = "DB_USER", value = aws_db_instance.main.username },
-      { name = "DB_SSLMODE", value = "require" },
+    environment = concat(local.db_env, [
       { name = "AUTH_ENABLED", value = "true" },
       { name = "COGNITO_REGION", value = var.region },
       { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.main.id },
       { name = "COGNITO_CLIENT_ID", value = aws_cognito_user_pool_client.api.id },
-    ]
+      { name = "REDIS_HOST", value = "${aws_service_discovery_service.redis.name}.${aws_service_discovery_private_dns_namespace.main.name}" },
+      { name = "CACHE_ENABLED", value = tostring(var.cache_enabled) },
+      { name = "CACHE_TTL_SECONDS", value = tostring(var.cache_ttl_seconds) },
+      { name = "SQS_QUEUE_URL", value = aws_sqs_queue.books.url },
+    ])
 
-    secrets = [
-      { name = "DB_PASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" },
-    ]
+    # ECS надсилає SIGTERM, чекає stopTimeout, потім SIGKILL (uvicorn дообробляє запити до 20 с)
+    stopTimeout = 30
+
+    secrets = local.db_secrets
 
     logConfiguration = {
       logDriver = "awslogs"
@@ -102,7 +117,7 @@ resource "aws_ecs_service" "app" {
   name            = var.name
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = var.desired_count
+  desired_count   = var.autoscaling_min
   launch_type     = "FARGATE"
 
   health_check_grace_period_seconds = 60
@@ -127,6 +142,7 @@ resource "aws_ecs_service" "app" {
   depends_on = [aws_lb_listener.http, terraform_data.initial_image]
 
   lifecycle {
-    ignore_changes = [task_definition]
+    # task_definition оновлює CD, desired_count — автомасштабування
+    ignore_changes = [task_definition, desired_count]
   }
 }

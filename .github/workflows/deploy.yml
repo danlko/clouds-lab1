@@ -68,3 +68,27 @@ jobs:
           cluster: ${{ env.ECS_CLUSTER }}
           service: ${{ env.ECS_SERVICE }}
           wait-for-service-stability: true
+
+      # Обробник черги (бонус 6): той самий образ, інша task definition і сервіс
+      - name: Get current worker task definition
+        run: >-
+          aws ecs describe-task-definition
+          --task-definition "$APP_NAME-worker"
+          --query taskDefinition
+          --output json > worker-task-definition.json
+
+      - name: Update worker task definition with new image
+        id: render-worker-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: worker-task-definition.json
+          container-name: worker
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy worker to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-worker-task-definition.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.APP_NAME }}-worker
+          wait-for-service-stability: true

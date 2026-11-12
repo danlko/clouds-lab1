@@ -14,3 +14,21 @@ class BookRead(BookCreate):
 
     id: int
     created_at: datetime
+
+
+class AuthorRead(BaseModel):
+    author: str
+    books_count: int
+    latest_books: list[BookRead]
+
+
+class OperationAccepted(BaseModel):
+    operation_id: str
+    status: str
+    status_url: str
+
+
+class OperationStatus(BaseModel):
+    operation_id: str
+    status: str  # pending | done
+    book: BookRead | None = None

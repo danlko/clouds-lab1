@@ -1,4 +1,4 @@
-# Books API — лабораторна 1 (AWS)
+# Books API — лабораторні 1–2 (AWS)
 
 REST API (FastAPI + PostgreSQL), запакований в Docker, розгорнутий на AWS через Terraform:
 ECS Fargate за ALB, RDS PostgreSQL у приватній підмережі, автодеплой через GitHub Actions (OIDC),
@@ -11,8 +11,12 @@ ECS Fargate за ALB, RDS PostgreSQL у приватній підмережі, �
 | Метод | Шлях | Доступ |
 |---|---|---|
 | GET | `/health`, `/health/db` | публічний |
-| GET | `/books`, `/books/{id}` | публічний |
-| POST / PUT / DELETE | `/books`, `/books/{id}` | Bearer JWT (інакше 401) |
+| GET | `/books?limit=&offset=` (кеш Redis, заголовок `X-Cache`), `/books/{id}`, `/authors/{author}` | публічний |
+| POST / PUT / DELETE | `/books`, `/books/{id}` (POST приймає `Idempotency-Key`) | Bearer JWT (інакше 401) |
+| POST | `/books/async` → 202, книгу створює обробник черги | Bearer JWT |
+| GET | `/operations/{id}` — статус асинхронної операції (pending / done) | публічний |
+| GET | `/cache/stats` — влучання в кеш, лічильники PostgreSQL | публічний |
+| PUT | `/admin/cache?enabled=true\|false` — перемикач кешу | Bearer JWT |
 | GET | `/me` | Bearer JWT |
 | GET | `/docs`, `/openapi.json` | публічний (OpenAPI) |
 
@@ -21,10 +25,15 @@ ECS Fargate за ALB, RDS PostgreSQL у приватній підмережі, �
 ```
 app/                     код застосунку (FastAPI, SQLAlchemy, перевірка JWT Cognito)
 Dockerfile               образ: python 3.12.7-slim, залежності окремим шаром, non-root
-compose.yaml             локально: app + postgres, volume pgdata
-infra/                   Terraform (network, security, ecr, rds, alb, ecs, cognito, github_oidc, monitoring, budget)
-.github/workflows/       deploy.yml — push у main → build → ECR (тег = SHA) → ECS
+compose.yaml             локально: app + worker + postgres + redis + elasticmq (SQS)
+infra/                   Terraform (network, security, ecr, rds, alb, ecs, cognito, github_oidc, monitoring, budget,
+                         autoscaling, cache, queue)
+.github/workflows/       deploy.yml — push у main → build → ECR (тег = SHA) → ECS (app і worker)
 scripts/get_token.sh     отримання JWT для тестового користувача
+loadtest/                сценарій k6 і скрипти запуску (ЛР2)
+tests/                   тести ідемпотентності та повторної доставки повідомлення
+docs/                    звіти ЛР2
+local/elasticmq.conf     локальна SQS-черга для compose
 ```
 
 ## 1. Локальний запуск (завдання 1)
@@ -73,6 +82,30 @@ curl -i -X POST $URL/books -H "Authorization: Bearer $TOKEN" -H 'Content-Type: a
      -d '{"title":"Kobzar","author":"Shevchenko","year":1840}'                                    # 201
 ```
 
+## Лабораторна 2: масштабування, моніторинг, кешування
+
+| Завдання | Код / Terraform | Документ |
+|---|---|---|
+| 1. Автомасштабування 1–4 задачі, CPU 60 % | `infra/autoscaling.tf` | [docs/AUTOSCALING.md](docs/AUTOSCALING.md) |
+| 2. Навантажувальний тест (k6, 1 запис + 9 читань) | `loadtest/` | [docs/LOADTEST.md](docs/LOADTEST.md) |
+| 3. Панель моніторингу (5 графіків + БД) | `infra/monitoring.tf` | [docs/AUTOSCALING.md](docs/AUTOSCALING.md) |
+| 4. Сповіщення CPU > 70 % 2 хв (ALARM + OK) | `infra/monitoring.tf` | [docs/ALERTS.md](docs/ALERTS.md) |
+| 5. Cache-aside у Redis (окремий ECS-сервіс) | `app/cache.py`, `infra/cache.tf` | [docs/CACHE.md](docs/CACHE.md) |
+| Бонус 6. Черга SQS + обробник, масштабування від довжини черги | `app/worker.py`, `infra/queue.tf` | [docs/QUEUE.md](docs/QUEUE.md) |
+| Бонус 7. Idempotency-Key | `app/idempotency.py`, `tests/` | [docs/IDEMPOTENCY.md](docs/IDEMPOTENCY.md) |
+| Бонус 8. Розклад (2 удень / 1 уночі) | `infra/autoscaling.tf` | [docs/SCHEDULE.md](docs/SCHEDULE.md) |
+
+Порядок розгортання змін ЛР2:
+
+```bash
+terraform -chdir=infra apply      # autoscaling, Redis, SQS, worker, панель, алярм; перезбирає образ з тегом lab2
+git push origin main              # CD оновлює app і worker: бере останню ревізію (з новими env) і підставляє новий образ
+DEMO_EMAIL=... DEMO_PASSWORD='...' ./loadtest/run.sh        # прогін ~10 хв, стежити за dashboard_url
+```
+
+Якщо push відбувся раніше за apply — запустити workflow повторно (Actions → Run workflow), інакше задачі не знатимуть
+адресу Redis (сервіс працює, але без кешу: `X-Cache: BYPASS`).
+
 ## 6. Видалення ресурсів
 
 ```bash
@@ -91,4 +124,5 @@ cd infra && terraform destroy
   task definition з новим образом.
 - **Health check:** ALB перевіряє `GET /health` (200); ECS circuit breaker відкочує невдалий деплой.
 - **HTTP, не HTTPS:** для HTTPS потрібен власний домен + сертифікат ACM; у лабораторній це поза вимогами.
-- **Вартість:** NAT Gateway і ALB тарифікуються погодинно — після захисту обов'язково `terraform destroy`.
+- **Вартість:** NAT Gateway, ALB, задача Redis і додаткові задачі автомасштабування тарифікуються погодинно —
+  після захисту обов'язково `terraform destroy`.

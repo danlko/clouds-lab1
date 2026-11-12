@@ -13,11 +13,49 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+
+  sqs:
+    # локальний SQS-сумісний сервер; черга books створюється з local/elasticmq.conf
+    image: softwaremill/elasticmq-native:1.6.9
+    volumes:
+      - ./local/elasticmq.conf:/opt/elasticmq.conf:ro
+    ports:
+      - "9325:9325"   # UI зі станом черг
+
+  worker:
+    build: .
+    command: ["python", "-m", "app.worker"]
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+      sqs:
+        condition: service_started
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: books
+      DB_USER: books
+      DB_PASSWORD: books_local_pw
+      DB_SSLMODE: disable
+      SQS_QUEUE_URL: http://sqs:9324/000000000000/books
+      SQS_ENDPOINT_URL: http://sqs:9324
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+
   app:
     build: .
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+      sqs:
+        condition: service_started
     environment:
       DB_HOST: db
       DB_PORT: "5432"
@@ -26,6 +64,12 @@ services:
       DB_PASSWORD: books_local_pw
       DB_SSLMODE: disable
       AUTH_ENABLED: "false"
+      REDIS_HOST: redis
+      CACHE_TTL_SECONDS: "30"
+      SQS_QUEUE_URL: http://sqs:9324/000000000000/books
+      SQS_ENDPOINT_URL: http://sqs:9324
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
     ports:
       - "8000:8000"
 
