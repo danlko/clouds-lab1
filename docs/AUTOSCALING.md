@@ -84,6 +84,13 @@ Terraform: `aws_cloudwatch_dashboard.main` у [`infra/monitoring.tf`](../infra/m
 | + | Навантаження на БД | `AWS/RDS` `CPUUtilization`, `DatabaseConnections` — для завдання 5 |
 | + | Стан алярмів, журнали застосунку | |
 
+Нижня частина панелі в консолі CloudWatch (знімок екрана, 2026-11-12 ~21:13 UTC, кінець першого прогону):
+
+![Стан сповіщень і журнали застосунку](img/console-alarms-logs.png)
+
+Журнал (CloudWatch Logs Insights по групі `/ecs/lab1-books`) показує запити від **двох різних задач** — потоки
+`app/app/b5db8eee…` і `app/app/ac4a3de…`: ALB розподіляє запити між екземплярами, доданими автомасштабуванням.
+
 ## Прогін і знімки панелі
 
 Прогін: `./loadtest/run.sh` (див. [LOADTEST.md](LOADTEST.md)), VUS = 60, початок **2026-11-12 21:04:03 UTC** (команда `./loadtest/cache_run.sh off`, кеш вимкнено).

@@ -79,6 +79,20 @@ WRITE_MODE=async LABEL=async DEMO_EMAIL=... DEMO_PASSWORD='...' ./loadtest/run.s
 
 Локальна перевірка (compose, 30 VU, скорочені фази): p95 `POST /books/async` = 7.5 мс, p95 усіх запитів = 9.5 мс, 0 % помилок.
 
+### Та сама панель у консолі CloudWatch
+
+Знімки екрана консолі (період 1h, UTC, зроблено 2026-11-12 22:58 UTC): верхні графіки і ряд черги.
+
+![Консоль: екземпляри, CPU, запити, p95](img/console-dashboard-async.png)
+
+![Консоль: черга і обробники](img/console-queue.png)
+
+Після прогону на графіку 1 видно два короткі сплески Running вище 4 (~22:39 і ~22:53) і невеликі сплески CPU max.
+Це не навантаження, а **деплої CD** після `git push` (нові ревізії task definition, у подіях ECS — `deployment completed`):
+під час rolling-оновлення ECS спершу запускає нову задачу і лише потім зупиняє стару (`maximumPercent` дозволяє
+тимчасово перевищити desired), а старт нового uvicorn дає сплеск CPU. Поки триває деплой, ECS призупиняє
+scale-in, тому після прогону 4 задачі трималися до 22:54:50 (4→3), а не ~22:45.
+
 ## Що змінилося для клієнта
 
 * Замість `201 Created` з книгою — **`202 Accepted`** з `operation_id`, `status_url` і заголовком `Location: /operations/<id>`.
