@@ -15,3 +15,12 @@ crash.log
 # Python cache
 __pycache__/
 *.py[cod]
+
+# Load test results — kept locally only
+loadtest/results/*
+!loadtest/results/.gitignore
+
+# Editor / tool folders
+.claude/
+.vscode/
+.idea/

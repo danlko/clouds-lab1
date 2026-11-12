@@ -40,6 +40,15 @@ OK: key=8e104a51-4f83-4f0a-8f6a-f4aad9a7d9fd
   books by idem-test-8e104a51: 1
 ```
 
+Результат у хмарі (AWS, 2026-11-12 20:59 UTC, `BASE_URL=$(terraform -chdir=infra output -raw app_url)`):
+
+```
+OK: key=48db5666-cb0e-415f-b471-1144a761f06b
+  1st: 201 {"title":"Idempotent book","author":"idem-test-48db5666","year":2024,"id":3,"created_at":"2026-11-12T20:59:31.295788Z"}
+  2nd: 201 {"title":"Idempotent book","author":"idem-test-48db5666","year":2024,"id":3,"created_at":"2026-11-12T20:59:31.295788Z"} (Idempotent-Replayed: true)
+  books by idem-test-48db5666: 1
+```
+
 ## Яку проблему це розв'язує
 
 POST не ідемпотентний: кожен виклик створює новий запис. Клієнт не може відрізнити «запит не дійшов» від

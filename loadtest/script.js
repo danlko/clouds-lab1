@@ -11,7 +11,7 @@ const VUS = parseInt(__ENV.VUS || '60', 10);
 const THINK = parseFloat(__ENV.THINK || '0.3'); // пауза між запитами одного користувача, с
 const LABEL = __ENV.LABEL || 'run';
 const ASYNC = (__ENV.WRITE_MODE || 'sync') === 'async'; // async: POST /books/async → 202 → черга
-const RAMP_UP = __ENV.RAMP_UP || '2m30s';
+const RAMP_UP = __ENV.RAMP_UP || '3m';
 const STEADY = __ENV.STEADY || '5m';
 const RAMP_DOWN = __ENV.RAMP_DOWN || '2m';
 

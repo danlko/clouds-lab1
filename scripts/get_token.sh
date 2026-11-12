@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Якщо змінні не задано — беремо тестового користувача з локального infra/terraform.tfvars (він у .gitignore)
+TFVARS="$(dirname "$0")/../infra/terraform.tfvars"
+if [[ -z "${DEMO_EMAIL:-}" && -f "$TFVARS" ]]; then
+  DEMO_EMAIL=$(sed -nE 's/^demo_user_email *= *"(.*)"/\1/p' "$TFVARS")
+fi
+if [[ -z "${DEMO_PASSWORD:-}" && -f "$TFVARS" ]]; then
+  DEMO_PASSWORD=$(sed -nE 's/^demo_user_password *= *"(.*)"/\1/p' "$TFVARS")
+fi
 : "${DEMO_EMAIL:?set DEMO_EMAIL}" "${DEMO_PASSWORD:?set DEMO_PASSWORD}"
 
 CLIENT_ID=$(terraform -chdir=infra output -raw cognito_client_id)
