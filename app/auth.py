@@ -1,4 +1,3 @@
-"""Перевірка JWT (access token), виданого AWS Cognito, на стороні сервісу."""
 from functools import lru_cache
 
 import jwt
@@ -9,11 +8,9 @@ from .config import get_settings
 
 bearer = HTTPBearer(auto_error=False)
 
-
 @lru_cache
 def _jwks_client() -> jwt.PyJWKClient:
     return jwt.PyJWKClient(f"{get_settings().cognito_issuer}/.well-known/jwks.json")
-
 
 def _unauthorized(detail: str) -> HTTPException:
     return HTTPException(
@@ -21,7 +18,6 @@ def _unauthorized(detail: str) -> HTTPException:
         detail=detail,
         headers={"WWW-Authenticate": "Bearer"},
     )
-
 
 def require_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> dict:
     s = get_settings()

@@ -20,7 +20,6 @@ books_json = TypeAdapter(list[BookRead])
 
 log = logging.getLogger("uvicorn.error")
 
-
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     for attempt in range(1, 31):
@@ -34,7 +33,6 @@ async def lifespan(_: FastAPI):
         raise RuntimeError("Database is not reachable")
     yield
 
-
 app = FastAPI(
     title="Books API",
     version="2.0.0",
@@ -44,24 +42,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
 @app.get("/health", tags=["service"])
 def health():
-    """Liveness — використовується health check'ом ALB."""
-    return {"status": "ok"}
 
+    return {"status": "ok"}
 
 @app.get("/health/db", tags=["service"])
 def health_db(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"status": "ok", "database": "up"}
 
-
 @app.get("/me", tags=["service"])
 def me(claims: dict = Depends(require_user)):
-    """Захищений ендпоінт: показує, хто автентифікований."""
-    return {"sub": claims.get("sub"), "username": claims.get("username")}
 
+    return {"sub": claims.get("sub"), "username": claims.get("username")}
 
 @app.get("/books", response_model=list[BookRead], tags=["books"])
 def list_books(
@@ -69,7 +63,7 @@ def list_books(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Найновіші книги. Cache-aside: Redis → (промах) БД → Redis з TTL. Заголовок X-Cache: HIT/MISS/BYPASS."""
+
     use_cache = cache.enabled()
     key = f"{cache.LIST_PREFIX}{limit}:{offset}"
     if use_cache and (cached := cache.get(key)) is not None:
@@ -81,7 +75,6 @@ def list_books(
         cache.put(key, body)
     return Response(body, media_type="application/json", headers={"X-Cache": "MISS" if use_cache else "BYPASS"})
 
-
 @app.get("/books/{book_id}", response_model=BookRead, tags=["books"])
 def get_book(book_id: int, db: Session = Depends(get_db)):
     book = db.get(models.Book, book_id)
@@ -89,10 +82,9 @@ def get_book(book_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Book not found")
     return book
 
-
 @app.get("/authors/{author}", response_model=AuthorRead, tags=["books"])
 def get_author(author: str, db: Session = Depends(get_db)):
-    """Дані автора: кількість книг і 10 найновіших."""
+
     total = db.scalar(select(func.count()).select_from(models.Book).where(models.Book.author == author))
     if not total:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Author not found")
@@ -100,7 +92,6 @@ def get_author(author: str, db: Session = Depends(get_db)):
         select(models.Book).where(models.Book.author == author).order_by(models.Book.id.desc()).limit(10)
     ).all()
     return AuthorRead(author=author, books_count=total, latest_books=[BookRead.model_validate(b) for b in latest])
-
 
 @app.post(
     "/books",
@@ -114,7 +105,6 @@ def create_book(
     claims: dict = Depends(require_user),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key", max_length=128),
 ):
-    """З заголовком Idempotency-Key повторний запит повертає збережену відповідь (24 год) без нового запису."""
 
     def execute() -> tuple[int, str]:
         book = models.Book(**payload.model_dump())
@@ -127,7 +117,6 @@ def create_book(
     status_code, body = execute()
     return Response(body, status_code=status_code, media_type="application/json")
 
-
 @app.post(
     "/books/async",
     response_model=OperationAccepted,
@@ -139,8 +128,7 @@ def create_book_async(
     claims: dict = Depends(require_user),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key", max_length=128),
 ):
-    """Кладе операцію в SQS і одразу відповідає 202. Книгу створює app.worker;
-    результат — GET /operations/{operation_id}. Підтримує Idempotency-Key (повтор не створює друге повідомлення)."""
+
     if not queue.configured():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Queue is not configured")
 
@@ -159,10 +147,9 @@ def create_book_async(
     resp.headers["Location"] = json.loads(resp.body)["status_url"]
     return resp
 
-
 @app.get("/operations/{operation_id}", response_model=OperationStatus, tags=["queue"])
 def get_operation(operation_id: str, db: Session = Depends(get_db)):
-    """pending — повідомлення ще в черзі; done — книгу створено (повертається разом з книгою)."""
+
     op = db.get(models.Operation, operation_id)
     if op is not None:
         book = db.get(models.Book, op.book_id) if op.book_id else None
@@ -173,7 +160,6 @@ def get_operation(operation_id: str, db: Session = Depends(get_db)):
     if r is not None and r.exists(f"op:{operation_id}"):
         return OperationStatus(operation_id=operation_id, status="pending")
     raise HTTPException(status.HTTP_404_NOT_FOUND, "Operation not found")
-
 
 @app.put(
     "/books/{book_id}",
@@ -190,7 +176,6 @@ def update_book(book_id: int, payload: BookCreate, db: Session = Depends(get_db)
     db.commit()
     return book
 
-
 @app.delete(
     "/books/{book_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -205,11 +190,9 @@ def delete_book(book_id: int, db: Session = Depends(get_db)):
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-
 @app.get("/cache/stats", tags=["cache"])
 def cache_stats(db: Session = Depends(get_db)):
-    """Частка влучань у кеш (лічильники в Redis, спільні для всіх екземплярів) і лічильники PostgreSQL
-    (кількість транзакцій і прочитаних рядків) — для оцінки навантаження на БД з кешем і без."""
+
     row = db.execute(
         text(
             "SELECT xact_commit, tup_returned, tup_fetched FROM pg_stat_database "
@@ -221,10 +204,9 @@ def cache_stats(db: Session = Depends(get_db)):
         "db": {"xact_commit": row.xact_commit, "tup_returned": row.tup_returned, "tup_fetched": row.tup_fetched},
     }
 
-
 @app.put("/admin/cache", dependencies=[Depends(require_user)], tags=["cache"])
 def toggle_cache(enabled: bool, reset_stats: bool = True):
-    """Увімкнути/вимкнути кеш для всіх екземплярів без передеплою (діє протягом ≤5 с)."""
+
     try:
         cache.set_enabled(enabled)
         if reset_stats:

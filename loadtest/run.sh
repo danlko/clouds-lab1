@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Запуск навантажувального тесту однією командою:
-#   DEMO_EMAIL=... DEMO_PASSWORD='...' ./loadtest/run.sh
-# Змінні: BASE_URL (за замовчуванням — terraform output app_url), TOKEN (інакше отримується з Cognito),
-#         VUS, THINK, LABEL, WRITE_MODE (sync|async), RAMP_UP, STEADY, RAMP_DOWN. Використовує k6, якщо встановлено, інакше Docker.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -10,9 +6,9 @@ cd "$ROOT"
 BASE_URL="${BASE_URL:-$(terraform -chdir=infra output -raw app_url)}"
 if [[ -z "${TOKEN:-}" ]]; then
   if [[ "$BASE_URL" == *localhost* || "$BASE_URL" == *127.0.0.1* ]]; then
-    TOKEN="local"   # локально AUTH_ENABLED=false
+    TOKEN="local"
   else
-    TOKEN="$(./scripts/get_token.sh)"   # access token Cognito живе 60 хв — вистачає на прогін
+    TOKEN="$(./scripts/get_token.sh)"
   fi
 fi
 

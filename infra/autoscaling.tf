@@ -1,4 +1,3 @@
-# Завдання 1: горизонтальне автомасштабування ECS-сервісу за середнім CPU.
 resource "aws_appautoscaling_target" "app" {
   service_namespace  = "ecs"
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
@@ -24,8 +23,6 @@ resource "aws_appautoscaling_policy" "cpu" {
   }
 }
 
-# Бонус 8: масштабування за розкладом (вмикається schedule_enabled = true).
-# Змінює лише мінімум; target tracking працює далі в межах [min, max].
 resource "aws_appautoscaling_scheduled_action" "day" {
   count              = var.schedule_enabled ? 1 : 0
   name               = "${var.name}-day"
@@ -55,6 +52,5 @@ resource "aws_appautoscaling_scheduled_action" "night" {
     max_capacity = var.autoscaling_max
   }
 
-  # дві дії над однією ціллю не можна створювати паралельно
   depends_on = [aws_appautoscaling_scheduled_action.day]
 }

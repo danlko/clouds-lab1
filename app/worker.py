@@ -1,10 +1,3 @@
-"""Обробник черги: python -m app.worker
-
-Читає SQS (long polling), для кожного повідомлення створює книгу і видаляє повідомлення.
-Доставка «щонайменше один раз»: якщо обробник упаде після commit, але до DeleteMessage,
-повідомлення повернеться після visibility timeout. Повтор нейтралізує первинний ключ operations.id:
-INSERT … ON CONFLICT DO NOTHING у тій самій транзакції, що й INSERT книги.
-"""
 import json
 import logging
 import signal
@@ -23,16 +16,14 @@ log = logging.getLogger("worker")
 
 stopping = False
 
-
 def _stop(signum, _frame):
     global stopping
     log.info("signal %s: finishing current batch and exiting", signum)
     stopping = True
 
-
 def process(body: dict) -> bool:
-    """True — книгу створено; False — повторна доставка, нічого не зроблено."""
-    time.sleep(get_settings().worker_work_seconds)  # «тривала» частина (зовнішній виклик, обробка)
+
+    time.sleep(get_settings().worker_work_seconds)
     with SessionLocal() as db, db.begin():
         claimed = db.execute(
             insert(models.Operation)
@@ -47,7 +38,6 @@ def process(body: dict) -> bool:
         db.flush()
         db.get(models.Operation, body["operation_id"]).book_id = book.id
     return True
-
 
 def main() -> None:
     signal.signal(signal.SIGTERM, _stop)
@@ -75,14 +65,13 @@ def main() -> None:
             try:
                 created = process(body)
             except Exception:
-                # не видаляємо: повідомлення повернеться в чергу, після 5 спроб — у DLQ
+
                 log.exception("operation %s failed (receive #%s)", body.get("operation_id"), receives)
                 continue
             if not created:
                 log.info("operation %s already processed (receive #%s) — duplicate skipped", body["operation_id"], receives)
             sqs().delete_message(QueueUrl=s.sqs_queue_url, ReceiptHandle=msg["ReceiptHandle"])
     log.info("stopped")
-
 
 if __name__ == "__main__":
     main()

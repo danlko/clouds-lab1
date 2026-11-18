@@ -18,12 +18,11 @@ services:
     command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
 
   sqs:
-    # локальний SQS-сумісний сервер; черга books створюється з local/elasticmq.conf
     image: softwaremill/elasticmq-native:1.6.9
     volumes:
       - ./local/elasticmq.conf:/opt/elasticmq.conf:ro
     ports:
-      - "9325:9325"   # UI зі станом черг
+      - "9325:9325"
 
   worker:
     build: .

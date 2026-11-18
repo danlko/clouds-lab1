@@ -95,8 +95,9 @@ Terraform: `aws_cloudwatch_dashboard.main` у [`infra/monitoring.tf`](../infra/m
 
 Прогін: `./loadtest/run.sh` (див. [LOADTEST.md](LOADTEST.md)), VUS = 60, початок **2026-11-12 21:04:03 UTC** (команда `./loadtest/cache_run.sh off`, кеш вимкнено).
 
-Знімок отримано з тієї самої панелі через `scripts/dashboard_png.py` (CloudWatch `GetMetricWidgetImage`),
-вертикальні мітки A–E додано як анотації. Час — UTC.
+Знімок екрана консолі CloudWatch (браузер). Для нього зроблено тимчасову копію панелі `lab1-books` з тими самими
+віджетами, проміжком часу прогону і вертикальними анотаціями A–E (CloudWatch підписує кожну мітку її часом);
+після зйомки копію видалено. Час — UTC.
 
 ![Панель під час прогону](img/dashboard-run.png)
 

@@ -51,7 +51,7 @@ resource "aws_iam_role" "task" {
 }
 
 locals {
-  # спільне для застосунку і обробника черги (queue.tf)
+
   db_env = [
     { name = "DB_HOST", value = aws_db_instance.main.address },
     { name = "DB_PORT", value = tostring(aws_db_instance.main.port) },
@@ -97,7 +97,6 @@ resource "aws_ecs_task_definition" "app" {
       { name = "SQS_QUEUE_URL", value = aws_sqs_queue.books.url },
     ])
 
-    # ECS надсилає SIGTERM, чекає stopTimeout, потім SIGKILL (uvicorn дообробляє запити до 20 с)
     stopTimeout = 30
 
     secrets = local.db_secrets
@@ -142,7 +141,7 @@ resource "aws_ecs_service" "app" {
   depends_on = [aws_lb_listener.http, terraform_data.initial_image]
 
   lifecycle {
-    # task_definition оновлює CD, desired_count — автомасштабування
+
     ignore_changes = [task_definition, desired_count]
   }
 }

@@ -1,8 +1,3 @@
-"""Спільний кеш у Redis (cache-aside) + сховище для Idempotency-Key.
-
-Redis — окремий сервіс, спільний для всіх екземплярів застосунку, тому всі вони
-бачать один і той самий кеш. Якщо Redis недоступний, сервіс працює далі напряму з БД.
-"""
 import logging
 import time
 from functools import lru_cache
@@ -21,7 +16,6 @@ _flag_value: bool | None = None
 _flag_checked_at = 0.0
 FLAG_REFRESH_SECONDS = 5
 
-
 @lru_cache
 def client() -> redis.Redis | None:
     s = get_settings()
@@ -35,10 +29,8 @@ def client() -> redis.Redis | None:
         health_check_interval=30,
     )
 
-
 def enabled() -> bool:
-    """Чи ввімкнено кеш. Прапорець живе в Redis (перемикається через PUT /admin/cache
-    без передеплою); кожен екземпляр перечитує його не частіше ніж раз на 5 с."""
+
     global _flag_value, _flag_checked_at
     r = client()
     if r is None:
@@ -54,7 +46,6 @@ def enabled() -> bool:
             _flag_value = False
     return _flag_value
 
-
 def set_enabled(value: bool) -> None:
     global _flag_value
     r = client()
@@ -62,7 +53,6 @@ def set_enabled(value: bool) -> None:
         raise RuntimeError("Redis is not configured")
     r.set(FLAG_KEY, "1" if value else "0")
     _flag_value = value
-
 
 def get(key: str) -> bytes | None:
     try:
@@ -73,7 +63,6 @@ def get(key: str) -> bytes | None:
         log.warning("Redis GET failed: %s", exc.__class__.__name__)
         return None
 
-
 def put(key: str, value: bytes, ttl: int | None = None) -> None:
     if client() is None:
         return
@@ -81,7 +70,6 @@ def put(key: str, value: bytes, ttl: int | None = None) -> None:
         client().set(key, value, ex=ttl or get_settings().cache_ttl_seconds)
     except redis.RedisError as exc:
         log.warning("Redis SET failed: %s", exc.__class__.__name__)
-
 
 def stats() -> dict:
     r = client()
@@ -98,7 +86,6 @@ def stats() -> dict:
         "misses": misses,
         "hit_ratio": round(hits / total, 4) if total else None,
     }
-
 
 def reset_stats() -> None:
     r = client()

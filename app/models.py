@@ -5,7 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
 
-
 class Book(Base):
     __tablename__ = "books"
 
@@ -17,10 +16,7 @@ class Book(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-
 class Operation(Base):
-    """Результат асинхронної операції. Первинний ключ = operation_id з повідомлення черги,
-    тому повторна доставка того самого повідомлення не створить другу книгу."""
 
     __tablename__ = "operations"
 

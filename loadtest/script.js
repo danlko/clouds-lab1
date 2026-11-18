@@ -1,5 +1,3 @@
-// Профіль «мало записів, багато читань»: 1 POST + 9 GET на ітерацію.
-// Фази: наростання 0→VUS, стале навантаження 5 хв, спад до 0 за 2 хв.
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
@@ -8,9 +6,9 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 const BASE_URL = (__ENV.BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 const TOKEN = __ENV.TOKEN || '';
 const VUS = parseInt(__ENV.VUS || '60', 10);
-const THINK = parseFloat(__ENV.THINK || '0.3'); // пауза між запитами одного користувача, с
+const THINK = parseFloat(__ENV.THINK || '0.3');
 const LABEL = __ENV.LABEL || 'run';
-const ASYNC = (__ENV.WRITE_MODE || 'sync') === 'async'; // async: POST /books/async → 202 → черга
+const ASYNC = (__ENV.WRITE_MODE || 'sync') === 'async';
 const RAMP_UP = __ENV.RAMP_UP || '3m';
 const STEADY = __ENV.STEADY || '5m';
 const RAMP_DOWN = __ENV.RAMP_DOWN || '2m';
@@ -20,7 +18,7 @@ const AUTHORS = [
   'Vasyl Stus', 'Lina Kostenko', 'Serhiy Zhadan', 'Yuri Andrukhovych', 'Oksana Zabuzhko',
 ];
 
-const cacheHit = new Rate('cache_hit'); // частка X-Cache: HIT серед GET /books
+const cacheHit = new Rate('cache_hit');
 
 export const options = {
   scenarios: {
@@ -65,7 +63,6 @@ function listBooks() {
 export default function () {
   const author = AUTHORS[Math.floor(Math.random() * AUTHORS.length)];
 
-  // 1 запис
   const created = http.post(
     `${BASE_URL}/books${ASYNC ? '/async' : ''}`,
     JSON.stringify({ title: `k6 vu${__VU} it${__ITER}`, author, year: 1800 + Math.floor(Math.random() * 225) }),
@@ -82,20 +79,18 @@ export default function () {
   }
   sleep(THINK);
 
-  // async: дізнатися результат операції; якщо вже done — отримати id створеної книги
   const pollOperation = () => {
     const op = get(`/operations/${opId}`, 'operation');
-    try { if (op.json('status') === 'done') newId = op.json('book.id'); } catch (_) { /* ignore */ }
+    try { if (op.json('status') === 'done') newId = op.json('book.id'); } catch (_) {  }
   };
 
-  // 9 читань: список ×3, щойно створена книга ×2 (async: статус операції), випадкова книга ×2, автор ×2
   const list = listBooks();
   if (ASYNC && opId) pollOperation();
   else if (newId) get(`/books/${newId}`, 'get');
   get(`/authors/${encodeURIComponent(author)}`, 'author');
   listBooks();
   let books = [];
-  try { books = list.json(); } catch (_) { /* помилка вже врахована в check */ }
+  try { books = list.json(); } catch (_) {  }
   const pick = () => (books.length ? books[Math.floor(Math.random() * books.length)] : { id: newId || 1, author });
   get(`/books/${pick().id}`, 'get');
   get(`/authors/${encodeURIComponent(pick().author)}`, 'author');

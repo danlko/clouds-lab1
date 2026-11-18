@@ -47,7 +47,7 @@ WRITE_MODE=async LABEL=async DEMO_EMAIL=... DEMO_PASSWORD='...' ./loadtest/run.s
 ![Панель: черга і обробники](img/dashboard-queue.png)
 
 Прогін: 2026-11-12, старт 22:18:10 UTC, `WRITE_MODE=async LABEL=async ./loadtest/run.sh`, 60 VU, кеш увімкнено
-(результат: `loadtest/results/async-2026-11-12T22-27-47-133Z.md`). Знімок — `scripts/dashboard_png.py`, час UTC.
+(результат: `loadtest/results/async-2026-11-12T22-27-47-133Z.md`). Знімок — консоль CloudWatch (копія панелі з анотаціями «старт», «спад», «worker 1→2»), час UTC.
 
 Що видно на панелі:
 

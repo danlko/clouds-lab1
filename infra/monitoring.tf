@@ -42,7 +42,6 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_hosts" {
   ok_actions          = [aws_sns_topic.alerts.arn]
 }
 
-# Завдання 4: лист при CPU > 70% протягом 2 хв (ALARM) і другий лист при поверненні до норми (OK).
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name        = "${var.name}-cpu-high"
   alarm_description = "Середнє CPU сервісу ${var.name} > ${var.cpu_alarm_threshold}% протягом 2 хв. Перевірити панель: чи додаються екземпляри і чи не досягнуто максимуму (${var.autoscaling_max})."
@@ -69,7 +68,6 @@ locals {
   rds_dim = ["DBInstanceIdentifier", aws_db_instance.main.identifier]
 }
 
-# Завдання 3: панель моніторингу. Усі графіки з періодом 60 с.
 resource "aws_cloudwatch_dashboard" "main" {
   dashboard_name = var.name
   dashboard_body = jsonencode({

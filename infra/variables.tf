@@ -122,7 +122,7 @@ variable "db_instance_class" {
 variable "bootstrap_tag" {
   description = "Тег початкового образу, який Terraform збирає й пушить при першому apply"
   type        = string
-  default     = "lab2" # змінено в ЛР2: apply перезбирає образ із модулем app.worker
+  default     = "lab2"
 }
 
 variable "worker_min" {

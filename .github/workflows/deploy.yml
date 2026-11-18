@@ -69,7 +69,6 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           wait-for-service-stability: true
 
-      # Обробник черги (бонус 6): той самий образ, інша task definition і сервіс
       - name: Get current worker task definition
         run: >-
           aws ecs describe-task-definition

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Прогін сценарію з вимкненим або ввімкненим кешем + приріст лічильників PostgreSQL за прогін.
-#   DEMO_EMAIL=... DEMO_PASSWORD='...' ./loadtest/cache_run.sh off
-#   (зачекати, поки екземпляри повернуться до 1)
-#   DEMO_EMAIL=... DEMO_PASSWORD='...' ./loadtest/cache_run.sh on
 set -euo pipefail
 MODE="${1:?usage: cache_run.sh on|off}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,11 +12,11 @@ export TOKEN
 [[ "$MODE" == on ]] && ENABLED=true || ENABLED=false
 
 curl -sf -X PUT "$BASE_URL/admin/cache?enabled=$ENABLED&reset_stats=true" -H "Authorization: Bearer $TOKEN" >/dev/null
-sleep 6   # прапорець перечитується кожним екземпляром раз на 5 с
+sleep 6
 
 mkdir -p loadtest/results
 curl -sf "$BASE_URL/cache/stats" > "loadtest/results/cache-$MODE-before.json"
-LABEL="cache-$MODE" ./loadtest/run.sh || true   # не зупинятися, якщо спрацював threshold k6
+LABEL="cache-$MODE" ./loadtest/run.sh || true
 curl -sf "$BASE_URL/cache/stats" > "loadtest/results/cache-$MODE-after.json"
 
 python3 - "$MODE" <<'PY'

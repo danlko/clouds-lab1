@@ -1,5 +1,3 @@
-# Завдання 5: Redis — окремий ECS-сервіс у приватних підмережах, спільний для всіх екземплярів застосунку.
-# Знаходиться за DNS-ім'ям redis.<name>.local (Cloud Map). Без даних на диску: це кеш, а не сховище.
 resource "aws_security_group" "redis" {
   name        = "${var.name}-redis"
   description = "Redis cache"
@@ -17,7 +15,7 @@ resource "aws_vpc_security_group_ingress_rule" "redis_from_app" {
 resource "aws_vpc_security_group_egress_rule" "redis_all" {
   security_group_id = aws_security_group.redis.id
   ip_protocol       = "-1"
-  cidr_ipv4         = "0.0.0.0/0" # pull образу з public.ecr.aws через NAT
+  cidr_ipv4         = "0.0.0.0/0"
 }
 
 resource "aws_service_discovery_private_dns_namespace" "main" {
@@ -77,7 +75,6 @@ resource "aws_ecs_service" "redis" {
   desired_count   = 1
   launch_type     = "FARGATE"
 
-  # лише одна копія Redis: не запускати другу під час деплою
   deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
 

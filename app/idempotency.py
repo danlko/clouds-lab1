@@ -1,5 +1,3 @@
-"""Idempotency-Key для POST /books: повтор запиту з тим самим ключем повертає
-збережену відповідь і не створює другий запис у БД."""
 import hashlib
 import json
 from collections.abc import Callable
@@ -11,7 +9,6 @@ from .config import get_settings
 
 PROCESSING_TTL_SECONDS = 60
 
-
 def run_once(user_sub: str, key: str, payload_json: str, execute: Callable[[], tuple[int, str]]) -> Response:
     r = cache.client()
     if r is None:
@@ -20,7 +17,6 @@ def run_once(user_sub: str, key: str, payload_json: str, execute: Callable[[], t
     redis_key = f"idem:{user_sub}:{key}"
     fingerprint = hashlib.sha256(payload_json.encode()).hexdigest()
 
-    # SET NX — атомарно «захоплюємо» ключ; паралельний дубль отримає False
     claimed = r.set(
         redis_key,
         json.dumps({"state": "processing", "fp": fingerprint}),
@@ -48,7 +44,7 @@ def run_once(user_sub: str, key: str, payload_json: str, execute: Callable[[], t
     try:
         status_code, body = execute()
     except Exception:
-        r.delete(redis_key)  # операція не виконалась — клієнт може повторити з тим самим ключем
+        r.delete(redis_key)
         raise
 
     r.set(

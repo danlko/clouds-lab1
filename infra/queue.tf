@@ -1,4 +1,3 @@
-# Бонус 6: асинхронне створення книг. POST /books/async → SQS → обробник (окремий ECS-сервіс, той самий образ).
 resource "aws_sqs_queue" "books_dlq" {
   name                      = "${var.name}-books-dlq"
   message_retention_seconds = 14 * 24 * 3600
@@ -6,17 +5,16 @@ resource "aws_sqs_queue" "books_dlq" {
 
 resource "aws_sqs_queue" "books" {
   name                       = "${var.name}-books"
-  visibility_timeout_seconds = 30 # повідомлення, не видалене за 30 с, знову стає видимим (повторна доставка)
-  receive_wait_time_seconds  = 20 # long polling
+  visibility_timeout_seconds = 30
+  receive_wait_time_seconds  = 20
   message_retention_seconds  = 24 * 3600
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.books_dlq.arn
-    maxReceiveCount     = 5 # після 5 невдалих обробок — у DLQ
+    maxReceiveCount     = 5
   })
 }
 
-# Застосунок може лише відправляти
 resource "aws_iam_role_policy" "task_sqs_send" {
   name = "sqs-send"
   role = aws_iam_role.task.id
@@ -26,7 +24,6 @@ resource "aws_iam_role_policy" "task_sqs_send" {
   })
 }
 
-# Обробник може лише читати й видаляти
 resource "aws_iam_role" "worker" {
   name               = "${var.name}-worker"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
@@ -71,7 +68,6 @@ resource "aws_ecs_task_definition" "worker" {
     ])
     secrets = local.db_secrets
 
-    # SIGTERM → обробник дообробляє поточну пачку (≤10 повідомлень) і виходить
     stopTimeout = 30
 
     logConfiguration = {
@@ -94,7 +90,7 @@ resource "aws_ecs_service" "worker" {
 
   network_configuration {
     subnets          = aws_subnet.app[*].id
-    security_groups  = [aws_security_group.app.id] # той самий доступ до БД, що й у застосунку
+    security_groups  = [aws_security_group.app.id]
     assign_public_ip = false
   }
 
@@ -110,7 +106,6 @@ resource "aws_ecs_service" "worker" {
   }
 }
 
-# Масштабування обробника від довжини черги (step scaling: метрика не «на екземпляр», тому не target tracking)
 resource "aws_appautoscaling_target" "worker" {
   service_namespace  = "ecs"
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.worker.name}"
@@ -131,7 +126,6 @@ resource "aws_appautoscaling_policy" "worker_out" {
     cooldown                = 60
     metric_aggregation_type = "Maximum"
 
-    # межі — відносно порогу алярму (100): 100–1000 → +1, понад 1000 → +2
     step_adjustment {
       metric_interval_lower_bound = 0
       metric_interval_upper_bound = 900
@@ -189,6 +183,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_backlog_low" {
   evaluation_periods  = 5
   threshold           = 10
   comparison_operator = "LessThanOrEqualToThreshold"
-  treat_missing_data  = "breaching" # немає даних = черга порожня
+  treat_missing_data  = "breaching"
   alarm_actions       = [aws_appautoscaling_policy.worker_in.arn]
 }
